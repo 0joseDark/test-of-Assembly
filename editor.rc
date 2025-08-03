@@ -1,0 +1,17 @@
+#include "resource.h"
+
+EditorMenu MENU
+BEGIN
+    POPUP "&Ficheiro"
+    BEGIN
+        MENUITEM "&Abrir",    IDM_ABRIR
+        MENUITEM "&Guardar",  IDM_GUARDAR
+        MENUITEM SEPARATOR
+        MENUITEM "Sai&r",     IDM_SAIR
+    END
+    POPUP "&Editar"
+    BEGIN
+        MENUITEM "Copiar",    IDM_COPIAR
+        MENUITEM "Colar",     IDM_COLAR
+    END
+END
