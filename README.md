@@ -553,4 +553,340 @@ link editor.obj editor.res /subsystem:windows /entry:start /machine:x64 user32.l
 | Suporte a Unicode     | Funções `W`, `CreateFileW`, `EditW`        |
 
 ---
+### ✅ **Como compilar com MASM (Microsoft Macro Assembler)**
+
+# O **MASM** (Microsoft Macro Assembler) é um assembler da Microsoft para processadores **x86/x64**. Ele permite escrever programas em linguagem de montagem (Assembly) e gerar ficheiros `.exe`.
+
+---
+
+## 🧰 1. **Pré-requisitos**
+
+### 🔹 Tens duas opções principais:
+
+* **Instalar o MASM32 SDK** (mais simples para começar)
+* **Usar o MASM incluído no Visual Studio** (mais recente e poderoso)
+
+---
+
+## 🔽 2. **Instalar o MASM32 SDK (recomendado para começar)**
+
+1. Vai ao site oficial (ou pesquisa "MASM32 SDK download")
+   Link: [http://www.masm32.com/](http://www.masm32.com/)
+2. Faz download do instalador.
+3. Instala em `C:\masm32` (por defeito).
+
+---
+
+## 📁 3. **Estrutura de um programa simples**
+
+### Exemplo: `ola.asm`
+
+```asm
+.model small
+.stack 100h
+.data
+    msg db 'Ola Mundo!', 13, 10, '$'
+.code
+main:
+    mov ax, @data
+    mov ds, ax
+
+    mov ah, 9
+    mov dx, offset msg
+    int 21h
+
+    mov ah, 4Ch
+    int 21h
+end main
+```
+
+---
+
+## 🛠 4. **Como compilar com o MASM32**
+
+### Comandos a usar:
+
+```bash
+ml ola.asm
+```
+
+### Isso gera:
+
+* `OLA.OBJ`: ficheiro objeto intermediário
+* `OLA.EXE`: programa executável
+
+---
+
+## 🔀 5. **Compilação passo a passo**
+
+### A. **Montar e linkar separadamente** (útil para debug)
+
+```bash
+ml /c ola.asm        ; apenas monta (gera OLA.OBJ)
+link ola.obj         ; liga e cria OLA.EXE
+```
+
+---
+
+## 🚩 6. **Explicação dos parâmetros**
+
+| Comando | Significado                                         |
+| ------- | --------------------------------------------------- |
+| `ml`    | Microsoft Macro Assembler                           |
+| `/c`    | Apenas compila (não linka)                          |
+| `/coff` | Gera formato COFF (necessário para 64-bit às vezes) |
+| `/Fo`   | Define nome do ficheiro `.obj` de saída             |
+| `/Fe`   | Define nome do `.exe` de saída                      |
+| `/link` | Passa argumentos diretamente ao linker              |
+
+---
+
+## 💻 7. **Compilar Assembly 64-bit com Visual Studio (MASM x64)**
+
+1. Abre o **Developer Command Prompt for VS**
+2. Exemplo:
+
+```bash
+ml64 /Fo hello.obj /c hello.asm
+link hello.obj /subsystem:console
+```
+
+---
+
+## 📜 8. **Exemplo de Assembly x64 simples**
+
+```asm
+.code
+main proc
+    mov rax, 0
+    ret
+main endp
+end
+```
+
+---
+
+## 🧪 9. **Testar o programa**
+
+Depois de compilar, basta correr:
+
+```bash
+ola.exe
+```
+
+Verás:
+
+```
+Ola Mundo!
+```
+
+---
+
+## 🧠 10. **Dicas úteis**
+
+* Usa o `edit` ou `notepad` para editar `.asm`.
+* Usa `ml /?` para ver todos os parâmetros do MASM.
+* Usa `link /?` para ver todos os parâmetros do linker.
+
+---
+
+## 📦 11. **Exemplo completo de script batch**
+
+```bat
+@echo off
+ml /c /coff programa.asm
+link /subsystem:console programa.obj
+programa.exe
+pause
+```
+
+---
+# **projeto em Assembly (MASM32)** com **janela GUI**, **menu**, **botões**, ficheiros `.rc` e `.inc`, e instruções completas para **compilar com MASM e WinMain**.
+
+---
+
+## 📁 Estrutura de Pastas
+
+```
+Editor/
+├── bin/              ← EXE final
+├── build/            ← OBJ, RES temporários
+├── src/
+│   ├── editor.asm    ← Código principal
+│   ├── editor.inc    ← Constantes e identificadores
+│   └── editor.rc     ← Recursos (menus, ícones)
+└── assets/
+    └── icon.ico      ← Ícone da aplicação
+```
+
+---
+
+## 📘 `editor.inc` (em `src/`)
+
+```asm
+; editor.inc
+IDC_BUTTON1    equ 1001
+IDC_BUTTON2    equ 1002
+IDM_ABRIR      equ 40001
+IDM_SAIR       equ 40002
+```
+
+---
+
+## 🎨 `editor.rc` (em `src/`)
+
+```rc
+#include "editor.inc"
+
+1 ICON "assets\\icon.ico"
+
+MENU_MAIN MENU
+BEGIN
+    POPUP "&Ficheiro"
+    BEGIN
+        MENUITEM "&Abrir", IDM_ABRIR
+        MENUITEM "Sair",   IDM_SAIR
+    END
+END
+```
+
+---
+
+## 💡 `editor.asm` (em `src/`)
+
+```asm
+.386
+.model flat, stdcall
+option casemap:none
+
+include windows.inc
+include user32.inc
+include kernel32.inc
+include gdi32.inc
+includelib user32.lib
+includelib kernel32.lib
+includelib gdi32.lib
+
+include editor.inc
+
+.data
+    className db "JanelaPrincipal", 0
+    windowTitle db "Editor GUI MASM", 0
+    hInstance dd ?
+    hWndMain dd ?
+
+.code
+
+start:
+    invoke GetModuleHandle, NULL
+    mov hInstance, eax
+    invoke WinMain, hInstance, NULL, NULL, SW_SHOWDEFAULT
+    invoke ExitProcess, eax
+
+WinMain proc hInst:HINSTANCE, hPrev:HINSTANCE, lpCmdLine:LPSTR, nCmdShow:DWORD
+    LOCAL msg:MSG
+    LOCAL wc:WNDCLASSEX
+
+    mov wc.cbSize, SIZEOF WNDCLASSEX
+    mov wc.style, CS_HREDRAW or CS_VREDRAW
+    mov wc.lpfnWndProc, OFFSET WndProc
+    mov wc.cbClsExtra, 0
+    mov wc.cbWndExtra, 0
+    push hInst
+    pop wc.hInstance
+    mov wc.hbrBackground, COLOR_BTNFACE+1
+    mov wc.lpszMenuName, offset MENU_MAIN
+    mov wc.lpszClassName, offset className
+    invoke LoadIcon, hInst, 1
+    mov wc.hIcon, eax
+    mov wc.hIconSm, eax
+    invoke LoadCursor, NULL, IDC_ARROW
+    mov wc.hCursor, eax
+
+    invoke RegisterClassEx, addr wc
+    invoke CreateWindowEx, 0, addr className, addr windowTitle, \
+        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 500, 400, \
+        NULL, NULL, hInst, NULL
+    mov hWndMain, eax
+    invoke ShowWindow, hWndMain, SW_SHOWNORMAL
+    invoke UpdateWindow, hWndMain
+
+    .WHILE TRUE
+        invoke GetMessage, addr msg, NULL, 0, 0
+        .BREAK .IF eax == 0
+        invoke TranslateMessage, addr msg
+        invoke DispatchMessage, addr msg
+    .ENDW
+    mov eax, msg.wParam
+    ret
+WinMain endp
+
+WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
+    .IF uMsg == WM_CREATE
+        invoke CreateWindowEx, 0, addr className, addr windowTitle, \
+            WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
+            20, 50, 100, 30, hWnd, IDC_BUTTON1, hInstance, NULL
+
+        invoke CreateWindowEx, 0, addr className, addr windowTitle, \
+            WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
+            140, 50, 100, 30, hWnd, IDC_BUTTON2, hInstance, NULL
+
+    .ELSEIF uMsg == WM_COMMAND
+        mov eax, wParam
+        .IF ax == IDM_ABRIR
+            invoke MessageBox, hWnd, "Abrir ficheiro selecionado", "Menu", MB_OK
+        .ELSEIF ax == IDM_SAIR
+            invoke PostQuitMessage, 0
+        .ELSEIF ax == IDC_BUTTON1
+            invoke MessageBox, hWnd, "Botão 1 clicado", "Info", MB_OK
+        .ELSEIF ax == IDC_BUTTON2
+            invoke MessageBox, hWnd, "Botão 2 clicado", "Info", MB_OK
+        .ENDIF
+
+    .ELSEIF uMsg == WM_DESTROY
+        invoke PostQuitMessage, 0
+    .ELSE
+        invoke DefWindowProc, hWnd, uMsg, wParam, lParam
+        ret
+    .ENDIF
+    xor eax, eax
+    ret
+WndProc endp
+
+end start
+```
+
+---
+
+## 🛠 Como Compilar com MASM32
+
+### ⚙️ 1. Abrir **Prompt do MASM32** (`C:\masm32\qeditor.exe` → Tools → "Console")
+
+### ⚙️ 2. Executar os seguintes comandos:
+
+```cmd
+cd caminho\para\Editor
+
+rem Compilar recursos
+rc src\editor.rc
+cvtres /machine:ix86 editor.res
+
+rem Compilar assembly
+ml /c /coff src\editor.asm
+
+rem Linkar tudo
+link /SUBSYSTEM:WINDOWS /LIBPATH:C:\masm32\lib src\editor.obj editor.res /OUT:bin\editor.exe
+```
+
+---
+
+## ▶️ Executar o Programa
+
+```cmd
+bin\editor.exe
+```
+
+---
+
+
 
