@@ -1,5 +1,5 @@
 # test-of-Assembly
-desenferrugar o meu Assembly
+
 # **editor de texto com janela, menu e botões em Assembly (Assembler)**
 - Abaixo está um **exemplo mínimo funcional** em **Assembly x86 (32 bits)** para Windows usando o **Win32 API**, com:
 
