@@ -409,4 +409,148 @@ link editor.obj editor.res /subsystem:windows /entry:start /machine:x64 user32.l
 * Código 100% Assembly x64
 
 ---
+## **editor de texto em Assembly x64 para Windows**
+
+## 🆕 Novas Funcionalidades
+
+1. ✅ **Abrir múltiplos ficheiros** (com caixa de diálogo `GetOpenFileName` + `OFN_ALLOWMULTISELECT`)
+2. ✅ **Suporte a todos os tipos de ficheiros** (`*.*`)
+3. ✅ **Barra de ícones (toolbar)** com botões: Abrir, Guardar, Copiar, Colar
+4. ✅ **Suporte a Unicode** (`CreateWindowExW`, `GetOpenFileNameW`, `CreateFileW`, etc.)
+
+---
+
+### 📌 Modificações importantes
+
+* Usar `W` no final das funções da WinAPI (ex: `CreateFileW`) para Unicode.
+* Utilizar `WCHAR` para strings (16-bit).
+* Adicionar `TOOLBARCLASSNAMEW` para criar a barra de ícones.
+* Usar `InitCommonControlsEx` para carregar classes comuns (`TOOLBARCLASSNAME`).
+
+---
+
+## 🧩 Passos para implementar
+
+### 1. `.data` – Unicode + Filtro
+
+```asm
+.data
+FilterAllW      dw "Todos (*.*)",0,"*.*",0,0
+szFileW         dw 4096 dup(?)
+```
+
+### 2. OPENFILENAME para múltiplos ficheiros
+
+```asm
+ofn OPENFILENAMEW <>
+...
+mov ofn.lStructSize, sizeof OPENFILENAMEW
+mov ofn.hwndOwner, hWnd
+lea rdx, szFileW
+mov ofn.lpstrFile, rdx
+mov ofn.nMaxFile, 4096
+lea rdx, FilterAllW
+mov ofn.lpstrFilter, rdx
+mov ofn.Flags, OFN_EXPLORER or OFN_ALLOWMULTISELECT or OFN_FILEMUSTEXIST
+```
+
+Depois de `GetOpenFileNameW`, percorre-se a lista de caminhos em `szFileW`.
+
+---
+
+### 3. Criar barra de ícones (toolbar)
+
+```asm
+include commctrl.inc
+includelib comctl32.lib
+
+ToolbarInit proc hWnd:QWORD
+    LOCAL hToolBar:QWORD
+
+    ; Inicializa controlos comuns
+    mov ecx, sizeof INITCOMMONCONTROLSEX
+    sub rsp, 16
+    mov [rsp], ecx
+    mov [rsp+4], ICC_BAR_CLASSES
+    invoke InitCommonControlsEx, rsp
+    add rsp, 16
+
+    ; Cria toolbar
+    invoke CreateWindowExW, 0, chr$("ToolbarWindow32"), NULL,\
+        WS_CHILD or WS_VISIBLE or TBSTYLE_TOOLTIPS,\
+        0, 0, 0, 0, hWnd, 0, hInstance, NULL
+    mov hToolBar, rax
+
+    ; Adicionar botões (exemplo com Abrir, Guardar, Copiar, Colar)
+    ; usar imagem padrão ou adicionar ícones personalizados com TB_ADDBUTTONS
+    ret
+ToolbarInit endp
+```
+
+---
+
+### 4. Suporte a Unicode nos controlos
+
+```asm
+invoke CreateWindowExW, WS_EX_CLIENTEDGE, chr$("EDIT"), NULL,
+       WS_CHILD or WS_VISIBLE or ES_MULTILINE or ES_AUTOVSCROLL,
+       10, 30, 600, 400,
+       hWnd, IDC_EDIT, hInstance, NULL
+```
+
+---
+
+### 5. Leitura e escrita com Unicode
+
+```asm
+; Abrir ficheiro (Unicode)
+invoke CreateFileW, addr szFileW, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL
+
+; Guardar ficheiro (Unicode)
+invoke CreateFileW, addr szFileW, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL
+```
+
+---
+
+### 6. Exemplo de percorrer múltiplos ficheiros
+
+```asm
+; Após GetOpenFileNameW
+mov rsi, offset szFileW
+mov rdi, rsi
+
+; Primeiro valor é o diretório base
+next_file:
+    cmp word ptr [rsi], 0
+    je done_files
+    ; Aqui: processa o ficheiro
+    ; Mostrar em MessageBoxW ou abrir
+
+    add rsi, 2
+    jmp next_file
+done_files:
+```
+
+---
+
+## ✅ Compilar (Unicode + Toolbar)
+
+```cmd
+ml64 /c /Fo editor.obj editor.asm
+rc editor.rc
+link editor.obj editor.res /subsystem:windows /entry:start /machine:x64 user32.lib kernel32.lib gdi32.lib comdlg32.lib comctl32.lib
+```
+
+---
+
+## 💡 O que foi adicionado
+
+| Funcionalidade        | Implementação                              |
+| --------------------- | ------------------------------------------ |
+| Abrir múltiplos files | `OFN_ALLOWMULTISELECT` + buffer 4 KB       |
+| Todos os tipos        | Filtro `*.*` Unicode                       |
+| Barra de ícones       | `ToolbarWindow32` + `InitCommonControlsEx` |
+| Suporte a Unicode     | Funções `W`, `CreateFileW`, `EditW`        |
+
+---
 
