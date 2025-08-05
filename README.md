@@ -1,3 +1,5 @@
+[English](https://github.com/0joseDark/test-of-Assembly/blob/main/README-EN.md)
+
 # **editor de texto com janela, menu e botões em Assembly (Assembler)**
 - Abaixo está um **exemplo mínimo funcional** em **Assembly x86 (32 bits)** para Windows usando o **Win32 API**, com:
 
